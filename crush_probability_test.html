@@ -2,146 +2,78 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>짝사랑 확률 테스트 💘</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>내 IP 위치 보기</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
   <style>
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: Arial, sans-serif;
       text-align: center;
-      background-color: #fff0f5;
-      padding-top: 100px;
+      margin: 0;
+      padding: 0;
+      background: #0e1621;
+      color: #fff;
     }
-    input, button {
-      padding: 12px;
-      margin: 8px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+    h1 {
+      margin-top: 20px;
     }
-    button {
-      background-color: #ff69b4;
-      color: white;
-      cursor: pointer;
+    #info {
+      margin: 15px auto;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      max-width: 400px;
+      line-height: 1.6;
     }
-    #result {
-      font-size: 20px;
-      margin-top: 30px;
+    #map {
+      height: 400px;
+      width: 90%;
+      max-width: 800px;
+      margin: 20px auto;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>💘 짝사랑 성공 확률 테스트 💘</h1>
-  <p>두 사람의 이름을 입력하세요!</p>
-  <form id="loveForm">
-    <input type="text" id="yourName" placeholder="당신의 이름" required />
-    <br />
-    <input type="text" id="crushName" placeholder="짝사랑 상대 이름" required />
-    <br />
-    <button type="submit">확률 보기</button>
-  </form>
-  <div id="result"></div>
+  <h1>내 IP 위치 보기</h1>
+  <div id="info">불러오는 중...</div>
+  <div id="map"></div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // 이름 데이터베이스 (남자, 여자 이름 + 정보)
-    const nameDatabase = {
-      "김영숙": { gender: "female", length: 3, surname: "김", commonPairings: { male: ["김민수", "최병민", "박준우"], female: [] } },
-      "김민수": { gender: "male", length: 3, surname: "김", commonPairings: { female: ["김영숙", "김민서"], male: [] } },
-      "박지민": { gender: "male", length: 3, surname: "박", commonPairings: { female: [], male: [] } },
-      "이수민": { gender: "female", length: 3, surname: "이", commonPairings: { male: [], female: [] } },
-      "김소연": { gender: "female", length: 3, surname: "김", commonPairings: { male: [], female: [] } },
-      "이동혁": { gender: "male", length: 3, surname: "이", commonPairings: { female: [], male: [] } },
+    async function loadIP() {
+      const info = document.getElementById("info");
+      try {
+        const res = await fetch("https://ipwho.is/");
+        const data = await res.json();
+        if (!data.success) throw new Error("IP 정보를 불러올 수 없습니다.");
 
-      // 추가된 이름들
-      "성경준": { gender: "male", length: 3, surname: "성", commonPairings: { female: ["강하연", "민하윤"], male: [] } },
-      "김도윤": { gender: "male", length: 3, surname: "김", commonPairings: { female: ["강하연"], male: [] } },
-      "김재율": { gender: "male", length: 3, surname: "김", commonPairings: { female: ["민하윤"], male: [] } },
-      "김서진": { gender: "male", length: 3, surname: "김", commonPairings: { female: ["배아인"], male: [] } },
-      "차예준": { gender: "male", length: 3, surname: "차", commonPairings: { female: ["김나윤"], male: [] } },
-      "정호원": { gender: "male", length: 3, surname: "정", commonPairings: { female: ["오로라"], male: [] } },
-      "문지환": { gender: "male", length: 3, surname: "문", commonPairings: { female: ["이서원"], male: [] } },
-      "이주원": { gender: "male", length: 3, surname: "이", commonPairings: { female: ["만허윤"], male: [] } },
-      "김서윤": { gender: "male", length: 3, surname: "김", commonPairings: { female: ["배아인"], male: [] } },
-      "김열음": { gender: "male", length: 3, surname: "김", commonPairings: { female: ["강하연"], male: [] } },
-      "최병민": { gender: "male", length: 3, surname: "최", commonPairings: { female: ["김민서"], male: [] } },
-      "정유준": { gender: "male", length: 3, surname: "정", commonPairings: { female: ["만허윤"], male: [] } },
-      "추승원": { gender: "male", length: 3, surname: "추", commonPairings: { female: ["이서원"], male: [] } },
-      "박준우": { gender: "male", length: 3, surname: "박", commonPairings: { female: ["강하연"], male: [] } },
-      "김민서": { gender: "male", length: 3, surname: "김", commonPairings: { female: ["강하연"], male: [] } },
-      "장하영": { gender: "male", length: 3, surname: "장", commonPairings: { female: ["오로라"], male: [] } },
+        info.innerHTML = `
+          <b>IP:</b> ${data.ip}<br>
+          <b>위치:</b> ${data.city || "?"}, ${data.country}<br>
+          <b>위도:</b> ${data.latitude}, <b>경도:</b> ${data.longitude}<br>
+          <b>ISP:</b> ${data.connection?.isp || "?"}<br>
+          <b>시간대:</b> ${data.timezone?.id || "?"}
+        `;
 
-      // 여자 이름
-      "강하연": { gender: "female", length: 3, surname: "강", commonPairings: { male: ["성경준", "김도윤", "김민서"], female: [] } },
-      "민하윤": { gender: "female", length: 3, surname: "만", commonPairings: { male: ["김재율", "이주원", "정유준"], female: [] } },
-      "배아인": { gender: "female", length: 3, surname: "배", commonPairings: { male: ["김서진", "김서윤"], female: [] } },
-      "김민서": { gender: "female", length: 3, surname: "김", commonPairings: { male: ["최병민", "차예준"], female: [] } },
-      "김나윤": { gender: "female", length: 3, surname: "김", commonPairings: { male: ["차예준"], female: [] } },
-      "이서원": { gender: "female", length: 3, surname: "이", commonPairings: { male: ["문지환", "추승원"], female: [] } },
-      "오로라": { gender: "female", length: 3, surname: "오", commonPairings: { male: ["정호원", "장하영"], female: [] } },
-      "류채윤": { gender: "female", length: 3, surname: "류", commonPairings: { male: ["강하연"], female: [] } },
-
-      // 기존 이름 중 누락된 부분은 추가 가능
-    };
-
-    document.getElementById("loveForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-
-      const yourName = document.getElementById("yourName").value.trim();
-      const crushName = document.getElementById("crushName").value.trim();
-      const resultBox = document.getElementById("result");
-
-      if (!yourName || !crushName) {
-        resultBox.innerText = "⚠️ 이름을 모두 입력해주세요!";
-        return;
+        const map = L.map("map").setView([data.latitude, data.longitude], 10);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 18,
+        }).addTo(map);
+        L.marker([data.latitude, data.longitude])
+          .addTo(map)
+          .bindPopup(`${data.ip}<br>${data.city}, ${data.country}`)
+          .openPopup();
+      } catch (err) {
+        info.textContent = "정보를 불러올 수 없습니다.";
+        console.error(err);
       }
+    }
 
-      if (!(yourName in nameDatabase) || !(crushName in nameDatabase)) {
-        resultBox.innerText = "⚠️ 데이터베이스에 없는 이름입니다.";
-        return;
-      }
-
-      const yourData = nameDatabase[yourName];
-      const crushData = nameDatabase[crushName];
-
-      // 남-여 커플만 가능하게
-      if (yourData.gender === "male" && crushData.gender === "male") {
-        resultBox.innerText = "⚠️ 남자-남자 조합은 지원하지 않습니다.";
-        return;
-      }
-      if (yourData.gender === "female" && crushData.gender === "female") {
-        resultBox.innerText = "⚠️ 여자-여자 조합은 지원하지 않습니다.";
-        return;
-      }
-
-      // 공통 커먼 페어링 여부 확인
-      let basePercent = 50;
-      let bonus = 0;
-
-      if (yourData.commonPairings) {
-        if (yourData.gender === "male" && yourData.commonPairings.female?.includes(crushName)) {
-          bonus += 30;
-        } else if (yourData.gender === "female" && yourData.commonPairings.male?.includes(crushName)) {
-          bonus += 30;
-        }
-      }
-
-      if (crushData.commonPairings) {
-        if (crushData.gender === "male" && crushData.commonPairings.female?.includes(yourName)) {
-          bonus += 30;
-        } else if (crushData.gender === "female" && crushData.commonPairings.male?.includes(yourName)) {
-          bonus += 30;
-        }
-      }
-
-      // 이름 길이 비슷할수록 +10%
-      if (yourData.length === crushData.length) bonus += 10;
-
-      // 같은 성씨면 +10%
-      if (yourData.surname === crushData.surname) bonus += 10;
-
-      // 최종 확률은 50 + 보너스, 최대 100%
-      let percent = Math.min(50 + bonus, 100);
-
-      resultBox.innerText = `😍 ${yourName}와(과) ${crushName}의 짝사랑 성공 확률은 ${percent}%입니다!`;
-    });
+    loadIP();
   </script>
 </body>
 </html>
