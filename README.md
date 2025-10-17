@@ -1,2 +1,1 @@
-# scientificG6
-6th
+아ㅏㅏㅏ 몰라ㅏㅏ
